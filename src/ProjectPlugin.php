@@ -53,7 +53,6 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface
         $io->write('Cloning defined project repositories.');
 
         foreach ($repositories as $path => $repository) {
-            $realPath           = realpath($path);
             $detailedInfo       = is_array($repository);
             $runComposerInstall = false;
             $ref                = 'master';
@@ -77,7 +76,7 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface
             $package->setSourceUrl($repositoryUrl);
             $package->setSourceType('git');
 
-            $io->write("Cloning <success>{$repositoryUrl} ({$ref})</success> into <success>{$realPath}</success>.");
+            $io->write("Cloning <success>{$repositoryUrl} ({$ref})</success> into <success>{$path}</success>.");
             $downloader->doDownload($package, $path, $repositoryUrl);
 
             if ($runComposerInstall) {
@@ -97,12 +96,12 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface
             ProcessExecutor::setTimeout(0);
 
             $io->write('Removing <success>composer</success> remote.');
-            $gitHelper->removeRemote($realPath, 'composer');
+            $gitHelper->removeRemote($path, 'composer');
             if (isset($repository['remotes']) && is_array($repository['remotes'])) {
                 $io->write('Adding configured remotes.');
                 foreach ($repository['remotes'] as $name => $url) {
                     $io->write("Adding remote <success>{$name}</success> with url <success>{$url}</success>.");
-                    $gitHelper->addRemote($realPath, $name, $url);
+                    $gitHelper->addRemote($path, $name, $url);
                 }
             }
 
