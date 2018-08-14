@@ -9,7 +9,7 @@
  * @link    http://www.marmalade.de
  */
 
-namespace Marmalade;
+namespace Marmalade\Composer;
 
 use Composer\Composer;
 use Composer\EventDispatcher\EventSubscriberInterface;

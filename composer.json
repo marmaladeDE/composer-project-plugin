@@ -9,14 +9,14 @@
     "composer-plugin-api": "^1.1"
   },
   "require-dev": {
-    "composer/composer": "^1.5"
+    "composer/composer": "^1.6"
   },
   "autoload": {
     "psr-4": {
-      "Marmalade\\": "src/"
+      "Marmalade\\Composer\\": "src/"
     }
   },
   "extra": {
-    "class": "Marmalade\\ProjectPlugin"
+    "class": "Marmalade\\Composer\\ProjectPlugin"
   }
 }
