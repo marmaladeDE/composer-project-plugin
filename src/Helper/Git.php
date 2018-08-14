@@ -24,11 +24,21 @@ class Git
 
     public function removeRemote($path, $name, &$output = null)
     {
-        $this->executor->execute("git remote remove {$name}", $output, $path);
+        return $this->executor->execute("git remote remove {$name}", $output, $path);
     }
 
     public function addRemote($path, $name, $url, &$output = null)
     {
-        $this->executor->execute("git remote add {$name} {$url}", $output, $path);
+        return $this->executor->execute("git remote add {$name} {$url}", $output, $path);
+    }
+
+    public function fetchAll($path, &$output = null)
+    {
+        return $this->executor->execute('git fetch --all', $output, $path);
+    }
+
+    public function pull($path, &$output = null)
+    {
+        return $this->executor->execute('git pull', $output, $path);
     }
 }
