@@ -19,8 +19,11 @@ use Composer\Package\Package;
 use Composer\Plugin\PluginInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
+use Composer\Util\ProcessExecutor;
+use Marmalade\Composer\Helper\Git;
 use Symfony\Component\Process\Process;
 use function is_array;
+use function realpath;
 
 class ProjectPlugin implements PluginInterface, EventSubscriberInterface
 {
@@ -42,7 +45,15 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface
         /** @var GitDownloader $downloader */
         $downloader   = $event->getComposer()->getDownloadManager()->getDownloader('git');
         $repositories = $event->getComposer()->getConfig()->get('project-repositories');
+
+        $io = $event->getIO();
+
+        $gitHelper = new Git(new ProcessExecutor($io));
+
+        $io->write('Cloning defined project repositories.');
+
         foreach ($repositories as $path => $repository) {
+            $realPath           = realpath($path);
             $detailedInfo       = is_array($repository);
             $runComposerInstall = false;
             $ref                = 'master';
@@ -66,11 +77,11 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface
             $package->setSourceUrl($repositoryUrl);
             $package->setSourceType('git');
 
+            $io->write("Cloning <success>{$repositoryUrl} ({$ref})</success> into <success>{$realPath}</success>.");
             $downloader->doDownload($package, $path, $repositoryUrl);
 
             if ($runComposerInstall) {
                 $process = new Process('composer install --ansi -n', $path, null, null, 0);
-                $io      = $event->getIO();
                 $process->run(
                     function ($type, $buffer) use ($io) {
                         if (Process::ERR === $type) {
@@ -81,6 +92,21 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface
                     }
                 );
             }
+
+            $executorTimeout = ProcessExecutor::getTimeout();
+            ProcessExecutor::setTimeout(0);
+
+            $io->write('Removing <success>composer</success> remote.');
+            $gitHelper->removeRemote($realPath, 'composer');
+            if (isset($repository['remotes']) && is_array($repository['remotes'])) {
+                $io->write('Adding configured remotes.');
+                foreach ($repository['remotes'] as $name => $url) {
+                    $io->write("Adding remote <success>{$name}</success> with url <success>{$url}</success>.");
+                    $gitHelper->addRemote($realPath, $name, $url);
+                }
+            }
+
+            ProcessExecutor::setTimeout($executorTimeout);
         }
 
         return $result;
