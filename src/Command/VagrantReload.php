@@ -12,9 +12,11 @@
 namespace Marmalade\Composer\Command;
 
 use Composer\Command\BaseCommand;
+use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Process\Process;
 
 class VagrantReload extends BaseCommand
 {
@@ -32,7 +34,24 @@ class VagrantReload extends BaseCommand
 
     protected function execute(InputInterface $input, OutputInterface $output)
     {
-        $output->writeln('v:reload');
+        /** @var FormatterHelper $formatter */
+        $formatter = $this->getHelper('formatter');
+
+        $process = new Process(
+            sprintf('vagrant reload --color %s', implode(' ', $input->getArgument('machines'))), 'vm'
+        );
+        $process->setTimeout(0);
+        $process->run(
+            function ($type, $buffer) use ($output, $formatter) {
+                if (Process::ERR === $type) {
+                    $buffer = $formatter->formatBlock($buffer, 'error');
+                }
+
+                $output->write($buffer);
+            }
+        );
+
+        return $process->getExitCode();
     }
 
 }
