@@ -16,6 +16,8 @@ use Composer\Downloader\GitDownloader;
 use Composer\EventDispatcher\EventSubscriberInterface;
 use Composer\IO\IOInterface;
 use Composer\Package\Package;
+use Composer\Plugin\Capability\CommandProvider as CommandProviderCapability;
+use Composer\Plugin\Capable;
 use Composer\Plugin\PluginInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
@@ -25,12 +27,19 @@ use Symfony\Component\Process\Process;
 use function is_array;
 use function realpath;
 
-class ProjectPlugin implements PluginInterface, EventSubscriberInterface
+class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capable
 {
     public static function getSubscribedEvents()
     {
         return [
             ScriptEvents::POST_CREATE_PROJECT_CMD => 'installRepositories',
+        ];
+    }
+
+    public function getCapabilities()
+    {
+        return [
+            CommandProviderCapability::class => CommandProvider::class,
         ];
     }
 
