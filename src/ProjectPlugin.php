@@ -22,11 +22,10 @@ use Composer\Plugin\PluginInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 use Composer\Util\ProcessExecutor;
-use function file_exists;
 use Marmalade\Composer\Helper\Git;
 use Symfony\Component\Process\Process;
+use function file_exists;
 use function is_array;
-use function realpath;
 
 class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capable
 {
@@ -50,25 +49,28 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capabl
 
     public function installRepositories(Event $event)
     {
+        $repositories = $event->getComposer()->getConfig()->get('project-repositories');
+
+        if (!is_array($repositories)) {
+            return 0;
+        }
+
         $result = 0;
 
         /** @var GitDownloader $downloader */
-        $downloader   = $event->getComposer()->getDownloadManager()->getDownloader('git');
-        $repositories = $event->getComposer()->getConfig()->get('project-repositories');
-
-        $io = $event->getIO();
-
-        $gitHelper = new Git(new ProcessExecutor($io));
+        $downloader = $event->getComposer()->getDownloadManager()->getDownloader('git');
+        $io         = $event->getIO();
+        $gitHelper  = new Git(new ProcessExecutor($io));
 
         foreach ($repositories as $path => $repository) {
-            $detailedInfo       = is_array($repository);
-            $ref                = 'master';
+            $detailedInfo = is_array($repository);
+            $ref          = 'master';
 
             if ($detailedInfo) {
                 if (array_key_exists('reference', $repository)) {
                     $ref = $repository['reference'];
                 }
-                $repositoryUrl      = $repository['url'];
+                $repositoryUrl = $repository['url'];
             } else {
                 $repositoryUrl = (string) $repository;
             }
