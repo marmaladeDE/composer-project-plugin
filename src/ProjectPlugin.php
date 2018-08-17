@@ -22,6 +22,7 @@ use Composer\Plugin\PluginInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 use Composer\Util\ProcessExecutor;
+use function file_exists;
 use Marmalade\Composer\Helper\Git;
 use Symfony\Component\Process\Process;
 use function is_array;
@@ -61,7 +62,6 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capabl
 
         foreach ($repositories as $path => $repository) {
             $detailedInfo       = is_array($repository);
-            $runComposerInstall = false;
             $ref                = 'master';
 
             if ($detailedInfo) {
@@ -69,7 +69,6 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capabl
                     $ref = $repository['reference'];
                 }
                 $repositoryUrl      = $repository['url'];
-                $runComposerInstall = ($repository['composer-install'] ?? false);
             } else {
                 $repositoryUrl = (string) $repository;
             }
@@ -90,7 +89,21 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capabl
             $gitHelper->fetchAll($path);
             $gitHelper->pull($path);
 
-            if ($runComposerInstall) {
+            $executorTimeout = ProcessExecutor::getTimeout();
+            ProcessExecutor::setTimeout(0);
+
+            $io->write("Removing remote <comment>composer</comment> from <info>{$path}</info>.");
+            $gitHelper->removeRemote($path, 'composer');
+            if (isset($repository['remotes']) && is_array($repository['remotes'])) {
+                foreach ($repository['remotes'] as $name => $url) {
+                    $io->write("Adding remote <comment>{$name}</comment> with url <info>{$url}</info>.");
+                    $gitHelper->addRemote($path, $name, $url);
+                }
+            }
+
+            $runComposer = $repository['run-composer'] ?? true;
+            if ($runComposer && file_exists("{$path}/composer.json")) {
+                $io->write('Found <comment>composer.json</comment>, executing <info>composer install</info>.');
                 $process = new Process('composer install --ansi -n', $path, null, null, 0);
                 $process->run(
                     function ($type, $buffer) use ($io) {
@@ -103,16 +116,19 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capabl
                 );
             }
 
-            $executorTimeout = ProcessExecutor::getTimeout();
-            ProcessExecutor::setTimeout(0);
-
-            $io->write('Removing <info>composer</info> remote.');
-            $gitHelper->removeRemote($path, 'composer');
-            if (isset($repository['remotes']) && is_array($repository['remotes'])) {
-                foreach ($repository['remotes'] as $name => $url) {
-                    $io->write("Adding remote <info>{$name}</info> with url <info>{$url}</info>.");
-                    $gitHelper->addRemote($path, $name, $url);
-                }
+            $runNpm = $repository['run-npm'] ?? true;
+            if ($runNpm && file_exists("{$path}/package.json")) {
+                $io->write('Found <comment>package.json</comment>, executing <info>npm install</info>.');
+                $process = new Process('npm install --ansi -n', $path, null, null, 0);
+                $process->run(
+                    function ($type, $buffer) use ($io) {
+                        if (Process::ERR === $type) {
+                            $io->writeError($buffer, false);
+                        } else {
+                            $io->write($buffer, false);
+                        }
+                    }
+                );
             }
 
             ProcessExecutor::setTimeout($executorTimeout);
