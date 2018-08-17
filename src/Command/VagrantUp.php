@@ -22,7 +22,7 @@ class VagrantUp extends BaseCommand
 {
     protected function configure()
     {
-        $this->setName('v:up');
+        $this->setName('vm:up');
         $this->addArgument(
             'machines',
             InputArgument::OPTIONAL | InputArgument::IS_ARRAY,

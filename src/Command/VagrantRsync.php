@@ -30,7 +30,7 @@ class VagrantRsync extends BaseCommand
 
     protected function configure()
     {
-        $this->setName('v:rsync');
+        $this->setName('vm:rsync');
         $this->setDescription('Start automatic Rsync for one or more development VMs.');
     }
 

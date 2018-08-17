@@ -22,7 +22,7 @@ class VagrantReload extends BaseCommand
 {
     protected function configure()
     {
-        $this->setName('v:reload');
+        $this->setName('vm:reload');
         $this->addArgument(
             'machines',
             InputArgument::OPTIONAL | InputArgument::IS_ARRAY,

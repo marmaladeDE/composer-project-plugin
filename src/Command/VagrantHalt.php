@@ -22,7 +22,7 @@ class VagrantHalt extends BaseCommand
 {
     protected function configure()
     {
-        $this->setName('v:halt');
+        $this->setName('vm:halt');
         $this->addArgument(
             'machines',
             InputArgument::OPTIONAL | InputArgument::IS_ARRAY,
