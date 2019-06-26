@@ -24,7 +24,7 @@ class Restart extends BaseCommand
     protected function configure()
     {
         $this
-            ->setName('dc:up')
+            ->setName('dc:restart')
             ->setDescription('Restarts one or more docker-compose services.')
             ->addArgument(
                 'machines',

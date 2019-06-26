@@ -24,7 +24,7 @@ class Down extends BaseCommand
     protected function configure()
     {
         $this
-            ->setName('dc:up')
+            ->setName('dc:down')
             ->setDescription('Stops one or more docker-compose services.')
             ->addArgument(
                 'machines',
