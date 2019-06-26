@@ -13,16 +13,15 @@ namespace Marmalade\Composer\Command;
 
 use Composer\Command\BaseCommand;
 use Composer\Util\ProcessExecutor;
-use function implode;
-use function ob_get_clean;
 use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Symfony\Component\Process\Process;
 use function array_combine;
 use function array_map;
 use function count;
 use function explode;
-use Symfony\Component\Process\Process;
+use function implode;
 
 class VagrantRsync extends BaseCommand
 {
@@ -43,7 +42,7 @@ class VagrantRsync extends BaseCommand
         $keys     = self::$statusKeys;
         $keyCount = count($keys);
         $status   = array_map(
-            function ($element) use ($keys, $keyCount) {
+            static function ($element) use ($keys, $keyCount) {
                 $values = array_pad(explode(',', $element, 5), $keyCount, '');
 
                 return array_combine($keys, $values);
@@ -53,13 +52,13 @@ class VagrantRsync extends BaseCommand
 
         $rawRunningMachines = array_filter(
             $status,
-            function ($element) {
+            static function ($element) {
                 return $element['type'] === 'state' && $element['value'] === 'running';
             }
         );
 
         $runningMachines = array_map(
-            function ($element) {
+            static function ($element) {
                 return $element['machine'];
             },
             $rawRunningMachines
@@ -67,6 +66,7 @@ class VagrantRsync extends BaseCommand
 
         if (0 === count($runningMachines)) {
             $output->writeln('No machines are running!');
+
             return 0;
         }
 
@@ -75,13 +75,15 @@ class VagrantRsync extends BaseCommand
 
         $process = new Process(sprintf('vagrant rsync-auto --color %s', implode(' ', $runningMachines)), 'vm');
         $process->setTimeout(0);
-        $process->run(function ($type, $buffer) use ($output, $formatter) {
-            if (Process::ERR === $type) {
-                $buffer = $formatter->formatBlock($buffer, 'error');
-            }
+        $process->run(
+            static function ($type, $buffer) use ($output, $formatter) {
+                if (Process::ERR === $type) {
+                    $buffer = $formatter->formatBlock($buffer, 'error');
+                }
 
-            $output->write($buffer);
-        });
+                $output->write($buffer);
+            }
+        );
 
         return $process->getExitCode();
     }

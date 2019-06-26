@@ -12,7 +12,6 @@
 namespace Marmalade\Composer;
 
 use Composer\Plugin\Capability\CommandProvider as CommandProviderCapability;
-use Composer\Util\ProcessExecutor;
 use Marmalade\Composer\Command\VagrantHalt;
 use Marmalade\Composer\Command\VagrantReload;
 use Marmalade\Composer\Command\VagrantRsync;

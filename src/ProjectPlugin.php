@@ -22,11 +22,10 @@ use Composer\Plugin\PluginInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 use Composer\Util\ProcessExecutor;
-use function in_array;
 use Marmalade\Composer\Helper\Git;
-use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Process\Process;
 use function file_exists;
+use function in_array;
 use function is_array;
 
 class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capable
@@ -126,7 +125,7 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capabl
                 $checkProc = new Process('npm help|grep \'where <command> is one of:\' -A2|tail -n2');
                 $checkProc->mustRun();
                 $npmCommands = array_filter(array_map('trim', explode(',', $checkProc->getOutput())));
-                $npmCommand = in_array('ci', $npmCommands, true) ? 'ci' : 'install';
+                $npmCommand  = in_array('ci', $npmCommands, true) ? 'ci' : 'install';
 
                 $process = new Process("npm {$npmCommand} --ansi -n", $path, null, null, 0);
                 $process->run(

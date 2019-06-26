@@ -39,13 +39,15 @@ class VagrantHalt extends BaseCommand
 
         $process = new Process(sprintf('vagrant halt --color %s', implode(' ', $input->getArgument('machines'))), 'vm');
         $process->setTimeout(0);
-        $process->run(function ($type, $buffer) use ($output, $formatter) {
-            if (Process::ERR === $type) {
-                $buffer = $formatter->formatBlock($buffer, 'error');
-            }
+        $process->run(
+            static function ($type, $buffer) use ($output, $formatter) {
+                if (Process::ERR === $type) {
+                    $buffer = $formatter->formatBlock($buffer, 'error');
+                }
 
-            $output->write($buffer);
-        });
+                $output->write($buffer);
+            }
+        );
 
         return $process->getExitCode();
     }
