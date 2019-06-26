@@ -1,4 +1,7 @@
 <?php
+
+use Composer\Composer;
+
 /**
  * This file is part of a marmalade GmbH project
  * It is not Open Source and may not be redistributed.
@@ -12,10 +15,8 @@
 namespace Marmalade\Composer;
 
 use Composer\Plugin\Capability\CommandProvider as CommandProviderCapability;
-use Marmalade\Composer\Command\VagrantHalt;
-use Marmalade\Composer\Command\VagrantReload;
-use Marmalade\Composer\Command\VagrantRsync;
-use Marmalade\Composer\Command\VagrantUp;
+use Marmalade\Composer\Command\Vagrant;
+use Marmalade\Composer\Command\DockerCompose;
 use function array_merge;
 use function dirname;
 use function file_exists;
@@ -28,7 +29,8 @@ class CommandProvider implements CommandProviderCapability
 
     public function __construct($args)
     {
-        ['composer' => $composer, 'io' => $io, 'plugin' => $plugin] = $args;
+        /** @var Composer $composer **/
+        ['composer' => $composer] = $args;
         $projectRoot = dirname($composer->getConfig()->get('vendor-dir'));
 
         $this->hasVm = file_exists("{$projectRoot}/vm/Vagrantfile");
@@ -45,17 +47,19 @@ class CommandProvider implements CommandProviderCapability
     private function getVmCommands()
     {
         return $this->hasVm ? [
-            new VagrantUp(),
-            new VagrantHalt(),
-            new VagrantReload(),
-            new VagrantRsync(),
+            new Vagrant\Up(),
+            new Vagrant\Halt(),
+            new Vagrant\Reload(),
+            new Vagrant\Rsync(),
         ] : [];
     }
 
     private function getDockerCommands()
     {
         return $this->hasDocker ? [
-            // TODO: create commands for docker.
+            new DockerCompose\Up(),
+            new DockerCompose\Down(),
+            new DockerCompose\Restart(),
         ] : [];
     }
 }
