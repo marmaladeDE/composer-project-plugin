@@ -16,23 +16,46 @@ use Marmalade\Composer\Command\VagrantHalt;
 use Marmalade\Composer\Command\VagrantReload;
 use Marmalade\Composer\Command\VagrantRsync;
 use Marmalade\Composer\Command\VagrantUp;
-use function var_dump;
+use function array_merge;
+use function dirname;
+use function file_exists;
 
 class CommandProvider implements CommandProviderCapability
 {
-    public function __construct(...$args)
+    private $hasVm;
+
+    private $hasDocker;
+
+    public function __construct($args)
     {
-        var_dump($args);
+        ['composer' => $composer, 'io' => $io, 'plugin' => $plugin] = $args;
+        $projectRoot = dirname($composer->getConfig()->get('vendor-dir'));
+
+        $this->hasVm = file_exists("{$projectRoot}/vm/Vagrantfile");
+
+        $this->hasDocker = file_exists("{$projectRoot}/docker-compose.yml");
+        $this->hasDocker = $this->hasDocker || file_exists("{$projectRoot}/docker-compose.yaml");
     }
 
     public function getCommands()
     {
-        return [
+        return array_merge($this->getVmCommands(), $this->getDockerCommands());
+    }
+
+    private function getVmCommands()
+    {
+        return $this->hasVm ? [
             new VagrantUp(),
             new VagrantHalt(),
             new VagrantReload(),
             new VagrantRsync(),
-        ];
+        ] : [];
     }
 
+    private function getDockerCommands()
+    {
+        return $this->hasDocker ? [
+            // TODO: create commands for docker.
+        ] : [];
+    }
 }
