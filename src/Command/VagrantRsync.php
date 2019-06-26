@@ -11,6 +11,7 @@
 
 namespace Marmalade\Composer\Command;
 
+use function array_merge;
 use Composer\Command\BaseCommand;
 use Composer\Util\ProcessExecutor;
 use Symfony\Component\Console\Helper\FormatterHelper;
@@ -73,7 +74,8 @@ class VagrantRsync extends BaseCommand
         /** @var FormatterHelper $formatter */
         $formatter = $this->getHelper('formatter');
 
-        $process = new Process(sprintf('vagrant rsync-auto --color %s', implode(' ', $runningMachines)), 'vm');
+        $cmd = array_merge(['vagrant', 'rsync-auto', '--color'], $runningMachines);
+        $process = new Process($cmd, 'vm');
         $process->setTimeout(0);
         $process->run(
             static function ($type, $buffer) use ($output, $formatter) {

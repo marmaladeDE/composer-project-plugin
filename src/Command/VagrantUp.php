@@ -11,6 +11,7 @@
 
 namespace Marmalade\Composer\Command;
 
+use function array_merge;
 use Composer\Command\BaseCommand;
 use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Input\InputArgument;
@@ -37,7 +38,8 @@ class VagrantUp extends BaseCommand
         /** @var FormatterHelper $formatter */
         $formatter = $this->getHelper('formatter');
 
-        $process = new Process(sprintf('vagrant up --color %s', implode(' ', $input->getArgument('machines'))), 'vm');
+        $cmd = array_merge(['vagrant', 'up', '--color'], $input->getArgument('machines'));
+        $process = new Process($cmd, 'vm');
         $process->setTimeout(0);
         $process->run(
             static function ($type, $buffer) use ($output, $formatter) {

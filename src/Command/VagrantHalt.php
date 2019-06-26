@@ -37,7 +37,8 @@ class VagrantHalt extends BaseCommand
         /** @var FormatterHelper $formatter */
         $formatter = $this->getHelper('formatter');
 
-        $process = new Process(sprintf('vagrant halt --color %s', implode(' ', $input->getArgument('machines'))), 'vm');
+        $cmd = array_merge(['vagrant', 'halt', '--color'], (array) $input->getArgument('machines'));
+        $process = new Process($cmd, 'vm');
         $process->setTimeout(0);
         $process->run(
             static function ($type, $buffer) use ($output, $formatter) {

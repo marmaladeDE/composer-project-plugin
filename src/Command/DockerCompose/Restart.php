@@ -9,8 +9,9 @@
  * @link    http://www.marmalade.de
  */
 
-namespace Marmalade\Composer\Command;
+namespace Marmalade\Composer\Command\DockerCompose;
 
+use function array_merge;
 use Composer\Command\BaseCommand;
 use Symfony\Component\Console\Helper\FormatterHelper;
 use Symfony\Component\Console\Input\InputArgument;
@@ -18,18 +19,19 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Process\Process;
 
-class VagrantReload extends BaseCommand
+class Restart extends BaseCommand
 {
     protected function configure()
     {
-        $this->setName('vm:reload');
-        $this->addArgument(
-            'machines',
-            InputArgument::OPTIONAL | InputArgument::IS_ARRAY,
-            'Name(s) of the VMs to reload.',
-            []
-        );
-        $this->setDescription('Reload (restart) one or more development VMs.');
+        $this
+            ->setName('dc:up')
+            ->setDescription('Restarts one or more docker-compose services.')
+            ->addArgument(
+                'machines',
+                InputArgument::OPTIONAL | InputArgument::IS_ARRAY,
+                'Name(s) of the services to restart.',
+                []
+            );
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -37,9 +39,8 @@ class VagrantReload extends BaseCommand
         /** @var FormatterHelper $formatter */
         $formatter = $this->getHelper('formatter');
 
-        $cmd = array_merge(['vagrant', 'reload', '--color'], (array) $input->getArgument('machines'));
-
-        $process = new Process($cmd, 'vm');
+        $cmd = array_merge(['docker-compose', 'restart'], $input->getArgument('machines'));
+        $process = new Process($cmd);
         $process->setTimeout(0);
         $process->run(
             static function ($type, $buffer) use ($output, $formatter) {
