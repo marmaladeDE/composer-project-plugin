@@ -22,7 +22,9 @@ use Composer\Plugin\PluginInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 use Composer\Util\ProcessExecutor;
+use function in_array;
 use Marmalade\Composer\Helper\Git;
+use Symfony\Component\Console\Helper\ProgressBar;
 use Symfony\Component\Process\Process;
 use function file_exists;
 use function is_array;
@@ -108,7 +110,7 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capabl
                 $io->write('Found <comment>composer.json</comment>, executing <info>composer install</info>.');
                 $process = new Process('composer install --ansi -n', $path, null, null, 0);
                 $process->run(
-                    function ($type, $buffer) use ($io) {
+                    static function ($type, $buffer) use ($io) {
                         if (Process::ERR === $type) {
                             $io->writeError($buffer, false);
                         } else {
@@ -121,9 +123,14 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capabl
             $runNpm = $repository['run-npm'] ?? true;
             if ($runNpm && file_exists("{$path}/package.json")) {
                 $io->write('Found <comment>package.json</comment>, executing <info>npm install</info>.');
-                $process = new Process('npm install --ansi -n', $path, null, null, 0);
+                $checkProc = new Process('npm help|grep \'where <command> is one of:\' -A2|tail -n2');
+                $checkProc->mustRun();
+                $npmCommands = array_filter(array_map('trim', explode(',', $checkProc->getOutput())));
+                $npmCommand = in_array('ci', $npmCommands, true) ? 'ci' : 'install';
+
+                $process = new Process("npm {$npmCommand} --ansi -n", $path, null, null, 0);
                 $process->run(
-                    function ($type, $buffer) use ($io) {
+                    static function ($type, $buffer) use ($io) {
                         if (Process::ERR === $type) {
                             $io->writeError($buffer, false);
                         } else {
