@@ -22,33 +22,66 @@ use Composer\Plugin\PluginInterface;
 use Composer\Script\Event;
 use Composer\Script\ScriptEvents;
 use Composer\Util\ProcessExecutor;
+use function dirname;
 use Marmalade\Composer\Helper\Git;
+use function ob_get_clean;
+use Symfony\Component\Dotenv\Dotenv;
 use Symfony\Component\Process\Process;
 use function file_exists;
-use function in_array;
 use function is_array;
+use function preg_match;
 
 class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capable
 {
-    public static function getSubscribedEvents()
+    /**
+     * Returns an array of event names this subscriber wants to listen to.
+     *
+     * The array keys are event names and the value can be:
+     *
+     * * The method name to call (priority defaults to 0)
+     * * An array composed of the method name to call and the priority
+     * * An array of arrays composed of the method names to call and respective
+     *   priorities, or 0 if unset
+     *
+     * For instance:
+     *
+     * * array('eventName' => 'methodName')
+     * * array('eventName' => array('methodName', $priority))
+     * * array('eventName' => array(array('methodName1', $priority), array('methodName2'))
+     *
+     * @return array The event names to listen to
+     */
+    public static function getSubscribedEvents(): array
     {
         return [
-            ScriptEvents::POST_CREATE_PROJECT_CMD => 'installRepositories',
+            ScriptEvents::POST_CREATE_PROJECT_CMD => ['installRepositories', 'setupDockerCompose'],
         ];
     }
 
-    public function getCapabilities()
+    /**
+     * @return array|string[]
+     */
+    public function getCapabilities(): array
     {
         return [
             CommandProviderCapability::class => CommandProvider::class,
         ];
     }
 
-    public function activate(Composer $composer, IOInterface $io)
+    /**
+     * @param Composer    $composer
+     * @param IOInterface $io
+     */
+    public function activate(Composer $composer, IOInterface $io): void
     {
     }
 
-    public function installRepositories(Event $event)
+    /**
+     * @param Event $event
+     *
+     * @return int
+     */
+    public function installRepositories(Event $event): int
     {
         $repositories = $event->getComposer()->getConfig()->get('project-repositories');
 
@@ -104,44 +137,102 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capabl
                 }
             }
 
-            $runComposer = $repository['run-composer'] ?? true;
-            if ($runComposer && file_exists("{$path}/composer.json")) {
-                $io->write('Found <comment>composer.json</comment>, executing <info>composer install</info>.');
-                $process = new Process('composer install --ansi -n', $path, null, null, 0);
-                $process->run(
-                    static function ($type, $buffer) use ($io) {
-                        if (Process::ERR === $type) {
-                            $io->writeError($buffer, false);
-                        } else {
-                            $io->write($buffer, false);
-                        }
-                    }
-                );
+            if ($repository['run-composer'] ?? true) {
+                $this->installComposerDependencies($io, $path);
             }
 
-            $runNpm = $repository['run-npm'] ?? true;
-            if ($runNpm && file_exists("{$path}/package.json")) {
-                $io->write('Found <comment>package.json</comment>, executing <info>npm install</info>.');
-                $checkProc = new Process('npm help|grep \'where <command> is one of:\' -A2|tail -n2');
-                $checkProc->mustRun();
-                $npmCommands = array_filter(array_map('trim', explode(',', $checkProc->getOutput())));
-                $npmCommand  = in_array('ci', $npmCommands, true) ? 'ci' : 'install';
-
-                $process = new Process("npm {$npmCommand} --ansi -n", $path, null, null, 0);
-                $process->run(
-                    static function ($type, $buffer) use ($io) {
-                        if (Process::ERR === $type) {
-                            $io->writeError($buffer, false);
-                        } else {
-                            $io->write($buffer, false);
-                        }
-                    }
-                );
+            if ($repository['run-npm'] ?? true) {
+                $this->installNpmDependencies($io, $path);
             }
 
             ProcessExecutor::setTimeout($executorTimeout);
         }
 
         return $result;
+    }
+
+    /**
+     * @param IOInterface $io
+     * @param             $path
+     */
+    protected function installComposerDependencies(IOInterface $io, $path): void
+    {
+        if (file_exists("{$path}/composer.json")) {
+            $io->write('Found <comment>composer.json</comment>, executing <info>composer install</info>.');
+            $process = new Process(['composer', 'install', '--ansi', '-n'], $path, null, null, 0);
+            $process->run(
+                static function ($type, $buffer) use ($io) {
+                    if (Process::ERR === $type) {
+                        $io->writeError($buffer, false);
+                    } else {
+                        $io->write($buffer, false);
+                    }
+                }
+            );
+        }
+    }
+
+    /**
+     * @param IOInterface $io
+     * @param             $path
+     */
+    protected function installNpmDependencies(IOInterface $io, $path): void
+    {
+        if (file_exists("{$path}/package.json")) {
+            $io->write('Found <comment>package.json</comment>, executing <info>npm install</info>.');
+            $checkProc = new Process(['npm', 'help']);
+            $checkProc->mustRun();
+            $npmCommand = preg_match('/\s+ci,/', $checkProc->getOutput()) ? 'ci' : 'install';
+
+            $process = new Process(['npm', $npmCommand, '--ansi', '-n'], $path, null, null, 0);
+            $process->run(
+                static function ($type, $buffer) use ($io) {
+                    if (Process::ERR === $type) {
+                        $io->writeError($buffer, false);
+                    } else {
+                        $io->write($buffer, false);
+                    }
+                }
+            );
+        }
+    }
+
+    /**
+     * @param Event $event
+     *
+     * @return int
+     */
+    public function setupDockerCompose(Event $event): int
+    {
+        if (!file_exists('docker-compose.yml')) {
+            return 0;
+        }
+
+        $io = $event->getIO();
+
+        $path = dirname($event->getComposer()->getConfig()->get('vendor-dir'));
+
+        $os = strtolower(php_uname('s'));
+        $osSpecificComposeFile = "{$path}/docker-compose.{$os}.yml";
+        if (file_exists($osSpecificComposeFile)) {
+            $targetFile = "{$path}/docker-compose.override.yml";
+            $io->write(
+                "Copy <comment>{$osSpecificComposeFile}</comment> to <comment>{$targetFile}</comment>"
+            );
+            copy($osSpecificComposeFile, $targetFile);
+        }
+
+        if (file_exists("{$path}/.env.dist") && !file_exists("{$path}/.env")) {
+            $dotEnv = new Dotenv();
+            $dotEnv->load("{$path}/.env");
+
+            $fp = fopen("{$path}/.env", 'wb+');
+            foreach (explode(',', $_ENV['SYMFONY_DOTENV_VARS']) as $var) {
+                fwrite($fp, "{$var}={$_ENV[$var]}\n");
+            }
+            fclose($fp);
+        }
+
+        return 0;
     }
 }
