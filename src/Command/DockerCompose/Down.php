@@ -25,13 +25,7 @@ class Down extends BaseCommand
     {
         $this
             ->setName('dc:down')
-            ->setDescription('Stops one or more docker-compose services.')
-            ->addArgument(
-                'machines',
-                InputArgument::OPTIONAL | InputArgument::IS_ARRAY,
-                'Name(s) of the services to restart.',
-                []
-            );
+            ->setDescription('Stops one or more docker-compose services.');
     }
 
     protected function execute(InputInterface $input, OutputInterface $output)
@@ -39,8 +33,7 @@ class Down extends BaseCommand
         /** @var FormatterHelper $formatter */
         $formatter = $this->getHelper('formatter');
 
-        $cmd = array_merge(['docker-compose', 'down'], $input->getArgument('machines'));
-        $process = new Process($cmd);
+        $process = new Process('docker-compose down');
         $process->setTimeout(0);
         $process->run(
             static function ($type, $buffer) use ($output, $formatter) {

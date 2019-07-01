@@ -39,7 +39,7 @@ class Restart extends BaseCommand
         /** @var FormatterHelper $formatter */
         $formatter = $this->getHelper('formatter');
 
-        $cmd = array_merge(['docker-compose', 'restart'], $input->getArgument('machines'));
+        $cmd = sprintf('docker-compose restart %s', implode(' ', $input->getArgument('machines')));
         $process = new Process($cmd);
         $process->setTimeout(0);
         $process->run(

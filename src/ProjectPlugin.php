@@ -159,7 +159,7 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capabl
     {
         if (file_exists("{$path}/composer.json")) {
             $io->write('Found <comment>composer.json</comment>, executing <info>composer install</info>.');
-            $process = new Process(['composer', 'install', '--ansi', '-n'], $path, null, null, 0);
+            $process = new Process('composer install --ansi -n', $path, null, null, 0);
             $process->run(
                 static function ($type, $buffer) use ($io) {
                     if (Process::ERR === $type) {
@@ -180,11 +180,11 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capabl
     {
         if (file_exists("{$path}/package.json")) {
             $io->write('Found <comment>package.json</comment>, executing <info>npm install</info>.');
-            $checkProc = new Process(['npm', 'help']);
+            $checkProc = new Process('npm help');
             $checkProc->mustRun();
             $npmCommand = preg_match('/\s+ci,/', $checkProc->getOutput()) ? 'ci' : 'install';
 
-            $process = new Process(['npm', $npmCommand, '--ansi', '-n'], $path, null, null, 0);
+            $process = new Process("npm {$npmCommand} --ansi -n", $path, null, null, 0);
             $process->run(
                 static function ($type, $buffer) use ($io) {
                     if (Process::ERR === $type) {

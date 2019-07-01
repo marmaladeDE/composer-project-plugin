@@ -73,7 +73,7 @@ class Rsync extends BaseCommand
         /** @var FormatterHelper $formatter */
         $formatter = $this->getHelper('formatter');
 
-        $cmd     = array_merge(['vagrant', 'rsync-auto', '--color'], $runningMachines);
+        $cmd     = sprintf('vagrant rsync-auto --color %s', implode(' ' ,$runningMachines));
         $process = new Process($cmd, 'vm');
         $process->setTimeout(0);
         $process->run(

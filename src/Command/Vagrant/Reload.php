@@ -37,7 +37,7 @@ class Reload extends BaseCommand
         /** @var FormatterHelper $formatter */
         $formatter = $this->getHelper('formatter');
 
-        $cmd = array_merge(['vagrant', 'reload', '--color'], (array) $input->getArgument('machines'));
+        $cmd = sprintf('vagrant reload --color %s', implode(' ', $input->getArgument('machines')));
 
         $process = new Process($cmd, 'vm');
         $process->setTimeout(0);

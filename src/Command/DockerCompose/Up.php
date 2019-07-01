@@ -39,7 +39,7 @@ class Up extends BaseCommand
         /** @var FormatterHelper $formatter */
         $formatter = $this->getHelper('formatter');
 
-        $cmd = array_merge(['docker-compose', 'up', '-d'], $input->getArgument('machines'));
+        $cmd = sprintf('docker-compose up -d %s', implode(' ', $input->getArgument('machines')));
         $process = new Process($cmd);
         $process->setTimeout(0);
         $process->run(

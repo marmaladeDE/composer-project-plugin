@@ -38,7 +38,7 @@ class Up extends BaseCommand
         /** @var FormatterHelper $formatter */
         $formatter = $this->getHelper('formatter');
 
-        $cmd     = array_merge(['vagrant', 'up', '--color'], $input->getArgument('machines'));
+        $cmd     = sprintf('vagrant up --color %s', implode(' ', $input->getArgument('machines')));
         $process = new Process($cmd, 'vm');
         $process->setTimeout(0);
         $process->run(
