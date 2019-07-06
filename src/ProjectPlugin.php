@@ -204,14 +204,17 @@ class ProjectPlugin implements PluginInterface, EventSubscriberInterface, Capabl
      */
     public function setupDockerCompose(Event $event): int
     {
-        if (!file_exists('docker-compose.yml')) {
+        $io = $event->getIO();
+        $path = dirname($event->getComposer()->getConfig()->get('vendor-dir'));
+
+        $io->write("Initializing Docker setup in {$path} ... ", false);
+
+        if (!file_exists("{$path}/docker-compose.yml")) {
+            $io->write('nothing to do.');
             return 0;
         }
 
-        $io = $event->getIO();
-
-        $path = dirname($event->getComposer()->getConfig()->get('vendor-dir'));
-
+        $io->write("found <success>{$path}/docker-compose.yml</success>");
         $os = strtolower(php_uname('s'));
         $osSpecificComposeFile = "{$path}/docker-compose.{$os}.yml";
         if (file_exists($osSpecificComposeFile)) {
